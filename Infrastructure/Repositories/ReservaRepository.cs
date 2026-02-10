@@ -36,7 +36,8 @@ namespace Infrastructure.Repositories
                         FechaVuelta = r.FechaVuelta,
                         CantidadPasajes = r.CantidadPasajes,
                         Precio = r.Precio,
-                        Activo = r.Estado == 1 
+                        Activo = r.Estado == 1,
+                        YaFacturada = _context.Facturas.Any(f => f.IdReserva == r.IdReserva && f.Estado == 1)
                     })
                     .OrderByDescending(r => r.IdReserva)
                     .ToListAsync();
