@@ -16,9 +16,16 @@ namespace AgenciaViajesAPI.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(string correo, string clave)
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
-            var result = await _usuarioRepository.Login(correo, clave);
+           
+            if (request == null)
+            {
+                return BadRequest("La petición está vacía.");
+            }
+
+            var result = await _usuarioRepository.Login(request.Correo, request.Clave);
+
             return Ok(result);
         }
     }
