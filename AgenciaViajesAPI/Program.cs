@@ -18,7 +18,8 @@ builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 builder.Services.AddScoped<IReservaRepository, ReservaRepository>();
 builder.Services.AddScoped<IFacturaRepository, FacturaRepository>();
-
+builder.Services.AddScoped<ICatalogoRepository, CatalogoRepository>();
+builder.Services.AddScoped<IFacturaRepository, FacturaRepository>();
 // CONFIGURAR CORS (Permisos para que entre Angular)
 
 builder.Services.AddCors(options =>
