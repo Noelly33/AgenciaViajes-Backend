@@ -47,5 +47,6 @@ namespace Domain.DTOs
         public decimal Precio { get; set; }
 
         public bool Activo { get; set; }
+        public bool YaFacturada { get; set; }
     }
 }
