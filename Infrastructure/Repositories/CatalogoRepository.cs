@@ -57,5 +57,12 @@ namespace Infrastructure.Repositories
                 .ToListAsync();
             return new JsonResponse<List<CatalogoDTO>> { Success = true, Data = lista };
         }
+        public async Task<JsonResponse<List<CatalogoDTO>>> GetMetodosPago()
+        {
+            var lista = await _context.MetodosPago
+                .Select(m => new CatalogoDTO { Id = m.IdMetodoPago, Nombre = m.Nombre })
+                .ToListAsync();
+            return new JsonResponse<List<CatalogoDTO>> { Success = true, Data = lista };
+        }
     }
 }

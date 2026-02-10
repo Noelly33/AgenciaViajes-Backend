@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Infrastructure.Repositories
@@ -26,16 +25,16 @@ namespace Infrastructure.Repositories
             try
             {
                 var facturas = await _context.Facturas
-                    .Where(f => f.Estado == 1)
+                
                     .Select(f => new ListarFacturaDTO
                     {
                         IdFactura = f.IdFactura,
                         NumeroFactura = f.NumeroFactura,
                         Cliente = f.Cliente.Nombres + " " + f.Cliente.Apellidos,
-                        Ruta = f.Reserva.CiudadOrigen.Pais.Nombre + ", " + f.Reserva.CiudadOrigen.Nombre + " - " + f.Reserva.CiudadDestino.Pais.Nombre + ", " + f.Reserva.CiudadDestino.Nombre,
+                        Ruta = f.Reserva.CiudadOrigen.Nombre + " - " + f.Reserva.CiudadDestino.Nombre,
                         FechaEmision = f.FechaEmision,
                         MontoTotal = f.MontoTotal,
-                        Activo = f.Estado == 1
+                        Activo = f.Estado == 1 
                     })
                     .OrderByDescending(f => f.IdFactura)
                     .ToListAsync();
@@ -47,12 +46,12 @@ namespace Infrastructure.Repositories
                     Data = facturas
                 };
             }
-            catch
+            catch (Exception ex)
             {
                 return new JsonResponse<List<ListarFacturaDTO>>
                 {
                     Success = false,
-                    Message = "Error al obtener facturas"
+                    Message = "Error al obtener facturas: " + ex.Message
                 };
             }
         }
@@ -60,7 +59,8 @@ namespace Infrastructure.Repositories
         public async Task<JsonResponse<FacturaDTO>> GetById(int id)
         {
             var factura = await _context.Facturas
-                .Where(f => f.IdFactura == id && f.Estado == 1)
+               
+                .Where(f => f.IdFactura == id)
                 .Select(f => new FacturaDTO
                 {
                     IdFactura = f.IdFactura,
@@ -76,70 +76,46 @@ namespace Infrastructure.Repositories
 
             if (factura == null)
             {
-                return new JsonResponse<FacturaDTO>
-                {
-                    Success = false,
-                    Message = "Factura no encontrada"
-                };
+                return new JsonResponse<FacturaDTO> { Success = false, Message = "Factura no encontrada" };
             }
 
-            return new JsonResponse<FacturaDTO>
-            {
-                Success = true,
-                Message = "Factura encontrada",
-                Data = factura
-            };
+            return new JsonResponse<FacturaDTO> { Success = true, Message = "Factura encontrada", Data = factura };
         }
 
         public async Task<JsonResponse<bool>> Create(CreateFacturaDTO dto)
         {
+         
             var reserva = await _context.Reservas
                 .FirstOrDefaultAsync(r => r.IdReserva == dto.IdReserva && r.Estado == 1);
 
             if (reserva == null)
-            {
-                return new JsonResponse<bool>
-                {
-                    Success = false,
-                    Message = "La reserva no existe o está inactiva"
-                };
-            }
+                return new JsonResponse<bool> { Success = false, Message = "La reserva no existe o está inactiva" };
 
+         
             bool yaFacturada = await _context.Facturas
                 .AnyAsync(f => f.IdReserva == dto.IdReserva && f.Estado == 1);
 
             if (yaFacturada)
-            {
-                return new JsonResponse<bool>
-                {
-                    Success = false,
-                    Message = "Esta reserva ya tiene una factura asociada"
-                };
-            }
+                return new JsonResponse<bool> { Success = false, Message = "Esta reserva ya tiene una factura asociada" };
 
+           
             var correlativo = await _context.Correlativos
                 .FirstOrDefaultAsync(c => c.TipoDocumento == "FACTURA");
 
             if (correlativo == null)
-            {
-                return new JsonResponse<bool>
-                {
-                    Success = false,
-                    Message = "No existe correlativo para FACTURA"
-                };
-            }
+                return new JsonResponse<bool> { Success = false, Message = "No existe configuración de correlativos" };
 
+          
             correlativo.UltimoNumero++;
 
-            decimal montoTotal = reserva.Precio;
-
+            
             var factura = new Factura
             {
-                NumeroFactura = correlativo.UltimoNumero.ToString("D6"),
+                NumeroFactura = correlativo.UltimoNumero.ToString("D6"), 
                 IdCliente = dto.IdCliente,
                 IdReserva = dto.IdReserva,
                 IdMetodoPago = dto.IdMetodoPago,
-                MontoTotal = montoTotal,
+                MontoTotal = reserva.Precio,
                 FechaEmision = DateTime.Now,
                 Estado = 1,
                 UsuarioRegistro = "SYSTEM",
@@ -147,74 +123,44 @@ namespace Infrastructure.Repositories
             };
 
             _context.Facturas.Add(factura);
-            _context.Correlativos.Update(correlativo);
+            _context.Correlativos.Update(correlativo); 
 
             await _context.SaveChangesAsync();
 
-            return new JsonResponse<bool>
-            {
-                Success = true,
-                Message = "Factura creada correctamente",
-                Data = true
-            };
+            return new JsonResponse<bool> { Success = true, Message = "Factura generada correctamente", Data = true };
         }
-
 
         public async Task<JsonResponse<FacturaDTO>> Update(FacturaDTO dto)
         {
             var factura = await _context.Facturas
-                .FirstOrDefaultAsync(f => f.IdFactura == dto.IdFactura && f.Estado == 1);
+                .FirstOrDefaultAsync(f => f.IdFactura == dto.IdFactura); 
 
             if (factura == null)
-            {
-                return new JsonResponse<FacturaDTO>
-                {
-                    Success = false,
-                    Message = "Factura no encontrada"
-                };
-            }
+                return new JsonResponse<FacturaDTO> { Success = false, Message = "Factura no encontrada" };
 
-            factura.IdCliente = dto.IdCliente;
-            factura.IdReserva = dto.IdReserva;
+            
             factura.IdMetodoPago = dto.IdMetodoPago;
-            factura.FechaEmision = dto.FechaEmision;
-            factura.MontoTotal = dto.MontoTotal;
+
+          
+            factura.Estado = dto.Activo ? 1 : 0;
 
             await _context.SaveChangesAsync();
 
-            return new JsonResponse<FacturaDTO>
-            {
-                Success = true,
-                Message = "Factura actualizada correctamente",
-                Data = dto
-            };
+            return new JsonResponse<FacturaDTO> { Success = true, Message = "Factura actualizada", Data = dto };
         }
 
         public async Task<JsonResponse<bool>> Delete(int id)
         {
-            var factura = await _context.Facturas
-                .FirstOrDefaultAsync(f => f.IdFactura == id && f.Estado == 1);
+            var factura = await _context.Facturas.FirstOrDefaultAsync(f => f.IdFactura == id);
 
             if (factura == null)
-            {
-                return new JsonResponse<bool>
-                {
-                    Success = false,
-                    Message = "Factura no encontrada"
-                };
-            }
+                return new JsonResponse<bool> { Success = false, Message = "Factura no encontrada" };
 
-            factura.Estado = 0;
+            factura.Estado = 0; 
             factura.UsuarioEliminacion = "SYSTEM";
-
             await _context.SaveChangesAsync();
 
-            return new JsonResponse<bool>
-            {
-                Success = true,
-                Message = "Factura eliminada correctamente",
-                Data = true
-            };
+            return new JsonResponse<bool> { Success = true, Message = "Factura anulada correctamente", Data = true };
         }
     }
 }

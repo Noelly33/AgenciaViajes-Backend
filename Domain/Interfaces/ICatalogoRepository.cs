@@ -13,5 +13,6 @@ namespace Domain.Interfaces
         Task<JsonResponse<List<CatalogoDTO>>> GetCiudades();
         Task<JsonResponse<List<CatalogoDTO>>> GetTiposPasajero();
         Task<JsonResponse<List<CatalogoDTO>>> GetTiposPasaje();
+        Task<JsonResponse<List<CatalogoDTO>>> GetMetodosPago();
     }
 }

@@ -31,5 +31,10 @@ namespace AgenciaViajesAPI.Controllers
         {
             return Ok(await _catalogoRepository.GetTiposPasaje());
         }
+        [HttpGet("metodos-pago")]
+        public async Task<IActionResult> GetMetodosPago()
+        {
+            return Ok(await _catalogoRepository.GetMetodosPago());
+        }
     }
 }
