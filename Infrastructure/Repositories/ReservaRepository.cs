@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Infrastructure.Repositories
@@ -21,13 +20,12 @@ namespace Infrastructure.Repositories
             _context = context;
         }
 
- 
         public async Task<JsonResponse<List<ListarReservaDTO>>> GetAll()
         {
             try
             {
                 var reservas = await _context.Reservas
-                    .Where(r => r.Estado == 1)
+                  
                     .Select(r => new ListarReservaDTO
                     {
                         IdReserva = r.IdReserva,
@@ -38,7 +36,7 @@ namespace Infrastructure.Repositories
                         FechaVuelta = r.FechaVuelta,
                         CantidadPasajes = r.CantidadPasajes,
                         Precio = r.Precio,
-                        Activo = r.Estado == 1
+                        Activo = r.Estado == 1 
                     })
                     .OrderByDescending(r => r.IdReserva)
                     .ToListAsync();
@@ -50,12 +48,12 @@ namespace Infrastructure.Repositories
                     Data = reservas
                 };
             }
-            catch
+            catch (Exception ex)
             {
                 return new JsonResponse<List<ListarReservaDTO>>
                 {
                     Success = false,
-                    Message = "Error al obtener reservas"
+                    Message = "Error al obtener reservas: " + ex.Message
                 };
             }
         }
@@ -63,7 +61,8 @@ namespace Infrastructure.Repositories
         public async Task<JsonResponse<ReservaDTO>> GetById(int id)
         {
             var reserva = await _context.Reservas
-                .Where(r => r.IdReserva == id && r.Estado == 1)
+                
+                .Where(r => r.IdReserva == id)
                 .Select(r => new ReservaDTO
                 {
                     IdReserva = r.IdReserva,
@@ -112,7 +111,7 @@ namespace Infrastructure.Repositories
                 FechaVuelta = dto.FechaVuelta,
                 CantidadPasajes = dto.CantidadPasajes,
                 Precio = dto.Precio,
-                Estado = 1,
+                Estado = 1, 
                 UsuarioRegistro = "SYSTEM",
                 FechaRegistro = DateTime.Now
             };
@@ -131,11 +130,10 @@ namespace Infrastructure.Repositories
             };
         }
 
-
         public async Task<JsonResponse<ReservaDTO>> Update(ReservaDTO dto)
         {
             var reserva = await _context.Reservas
-                .FirstOrDefaultAsync(r => r.IdReserva == dto.IdReserva && r.Estado == 1);
+                .FirstOrDefaultAsync(r => r.IdReserva == dto.IdReserva);
 
             if (reserva == null)
             {
@@ -156,6 +154,9 @@ namespace Infrastructure.Repositories
             reserva.CantidadPasajes = dto.CantidadPasajes;
             reserva.Precio = dto.Precio;
 
+        
+            reserva.Estado = dto.Activo ? 1 : 0;
+
             await _context.SaveChangesAsync();
 
             return new JsonResponse<ReservaDTO>
@@ -169,29 +170,18 @@ namespace Infrastructure.Repositories
         public async Task<JsonResponse<bool>> Delete(int id)
         {
             var reserva = await _context.Reservas
-                .FirstOrDefaultAsync(r => r.IdReserva == id && r.Estado == 1);
+                .FirstOrDefaultAsync(r => r.IdReserva == id);
 
             if (reserva == null)
             {
-                return new JsonResponse<bool>
-                {
-                    Success = false,
-                    Message = "Reserva no encontrada"
-                };
+                return new JsonResponse<bool> { Success = false, Message = "Reserva no encontrada" };
             }
 
-            reserva.Estado = 0;
-            reserva.UsuarioEliminacion = "SYSTEM"; 
-
+            reserva.Estado = 0; 
+            reserva.UsuarioEliminacion = "SYSTEM";
             await _context.SaveChangesAsync();
 
-            return new JsonResponse<bool>
-            {
-                Success = true,
-                Message = "Reserva eliminada correctamente",
-                Data = true
-            };
+            return new JsonResponse<bool> { Success = true, Message = "Reserva desactivada correctamente", Data = true };
         }
-
     }
 }
